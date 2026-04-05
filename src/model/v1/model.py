@@ -24,19 +24,64 @@ except:
 
 
 class Mlp(nn.Module):
-    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
+    def __init__(self, in_features, window_size, g_H, input_resolution, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
+        assert window_size[0] == window_size[1], "window parameters passed into Mlp block is a rectangle, expected square"
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
+        self.H = input_resolution[0]
+        self.W = input_resolution[1]
+        self.window_size = window_size[0]
+        assert self.H % self.window_size == 0
+        assert self.W % self.window_size == 0
+        
+        self.M = window_size[0] * window_size[1]
+        self.g_H = g_H
         self.fc1 = nn.Linear(in_features, hidden_features)
         self.act = act_layer()
         self.fc2 = nn.Linear(hidden_features, out_features)
         self.drop = nn.Dropout(drop)
 
+        #AWA layers
+        self.get_AWV = nn.Linear(in_features, self.M)
+        self.dense_attn = WindowAttention(dim=hidden_features, window_size=(self.H // self.window_size, self.W // self.window_size), num_heads=g_H)
+        self.get_DWV = nn.Linear(in_features + hidden_features, self.M)
+        self.norm1 = nn.LayerNorm(hidden_features)
+        self.norm_U = nn.LayerNorm(in_features+hidden_features)
+
     def forward(self, x):
+        B, N, C = x.shape
+
+        # generate AWV
+        x_get_T = x.view(B, self.H, self.W, C) # B, H, W, C
+        windowed_x_get_T = window_partition(x_get_T, self.window_size).view(-1, self.M, C) # B*w_, M, C
+        T = windowed_x_get_T[:, 0, :].unsqueeze(1) # B*w_, 1, C
+        AWV = torch.softmax(self.get_AWV(T), dim=2) # B*w_, 1, M
+
+        # mlp layer 1 (expansion)
         x = self.fc1(x)
         x = self.act(x)
         x = self.drop(x)
+        C_ = x.shape[2]
+
+        x = self.norm1(x)
+        x_get_window = x.view(B, self.H, self.W, C_) # B, H, W, C_
+        windowed_x = window_partition(x_get_window, self.window_size).view(-1, self.M, C_) # B*w_, M, C_
+        global_tokens = (AWV @ windowed_x).view(B, -1, C_) # B, w_, C_ (Since we are using WindowAttention to perform desnse attn, we treat n_windows=1, so the shape is correct for passing into WindowAttention (B*1,M,C))
+        global_tokens_out = self.dense_attn(global_tokens).view(-1, 1, C_) # B*w_, 1, C_
+
+        # generate DWV
+        U = torch.cat([T, global_tokens_out], dim=2) # B*w_, 1, C + C_
+        U = self.norm_U(U)
+        DWV = torch.softmax(self.get_DWV(U), dim=2) #B*w_, 1, M
+
+        y = DWV.transpose(1,2) @ global_tokens_out #B*w_, M, C_
+        y = y.view(B, -1, C_) # B, N, C_
+        x = x + y # B, N, C_
+        x = self.act(x)
+        x = self.drop(x)
+
+        # mlp layer 2 (compression)
         x = self.fc2(x)
         x = self.drop(x)
         return x
