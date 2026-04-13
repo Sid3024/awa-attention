@@ -1,4 +1,5 @@
 import logging
+import os
 
 from pathlib import Path
 
@@ -21,7 +22,7 @@ def setup_logger(LOG_FILE_PATH: str):
 
     # File handler
     if LOG_FILE_PATH is not None:
-        fh = logging.FileHandler(LOG_FILE_PATH)
+        fh = logging.FileHandler(os.path.join(LOG_FILE_PATH, "log.txt"))
         fh.setLevel(logging.DEBUG)
         fh.setFormatter(formatter)
         logger.addHandler(fh)
