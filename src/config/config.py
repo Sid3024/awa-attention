@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 @dataclass
 class MyConfig:
@@ -33,17 +33,38 @@ hyper_param_config = HyperParamConfig()
 
 @dataclass
 class ModelConfig:
-    pass
+    img_size: int = 224
+    patch_size: int = 4
+    in_chans: int = 3
+    embed_dim: int = 96
+    depths: list = field(default_factory=lambda: [1,1,1,1])
+    num_heads: list = field(default_factory=lambda: [3,3,6,6])# [3, 6, 12, 24])
+    global_num_heads: list = field(default_factory=lambda: [3,3,6,6])#[3, 6, 12, 24])
+    window_size: int = 7
+    mlp_ratio: float = 4.
+    qkv_bias: bool = True
+    qk_scale: float = None
+    drop_rate: float = 0.
+    attn_drop_rate: float = 0.
+    drop_path_rate: float = 0.1
+    ape: bool = False
+    patch_norm: bool = True
+    use_checkpoint: bool = False
+    fused_window_process: bool = False
 
 model_config = ModelConfig()
 
 @dataclass
 class RunConfig():
+    round: str = "initial"
+    iter_id: str = "001"
     MODEL_FILE_PATH: str = None
     LOG_FILE_PATH: str = None
     model_save_interval: int = int(1e4)
     num_classes: int = 200
     val_interval: int = 10000
+    model_version: str = "v1"
+    dry_run: bool = True
     
 
 run_config = RunConfig()

@@ -345,15 +345,38 @@ class SwinTransformerBlock(nn.Module):
     def flops(self):
         flops = 0
         H, W = self.input_resolution
+        N = H * W
+        C = self.dim
+        C_ = int(C * self.mlp_ratio)       # expanded dim
+        ws = self.window_size
+        M = ws * ws                         # tokens per window
+        w = N // M                          # number of windows
+
         # norm1
-        flops += self.dim * H * W
+        flops += C * N
         # W-MSA/SW-MSA
-        nW = H * W / self.window_size / self.window_size
-        flops += nW * self.attn.flops(self.window_size * self.window_size)
-        # mlp
-        flops += 2 * H * W * self.dim * self.dim * self.mlp_ratio
+        nW = N / M
+        flops += nW * self.attn.flops(M)
         # norm2
-        flops += self.dim * H * W
+        flops += C * N
+
+        # --- AWA-fused MLP ---
+        # fc1: N x C -> C_
+        flops += 2 * N * C * C_
+        # get_AWV: w tokens of dim C -> M  (one T token per window)
+        flops += 2 * w * C * M
+        # AWV aggregation: w x (1xM @ MxC_)
+        flops += 2 * w * M * C_
+        # dense_attn on w global tokens of dim C_
+        # uses WindowAttention.flops(N) formula: 4*N*dim^2 + 2*N^2*dim
+        flops += 4 * w * C_ * C_ + 2 * w * w * C_
+        # get_DWV: w tokens of dim (C + C_) -> M
+        flops += 2 * w * (C + C_) * M
+        # DWV broadcast back: w x (Mx1 @ 1xC_)
+        flops += 2 * w * M * C_
+        # fc2: N x C_ -> C
+        flops += 2 * N * C_ * C
+
         return flops
 
 
