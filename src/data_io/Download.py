@@ -13,8 +13,13 @@ def setup_download(download=True, verify=True):
     else:
         raise ValueError("download=False is not supported unless you manually provide the path.")
 
+    PROJECT_ROOT = Path(__file__).resolve().parents[1]
+    DEFAULT_DATA_DIR = PROJECT_ROOT / "data"
+
     dataset_root = os.path.join(path, "tiny-imagenet-200")
-    fixed_root = os.path.join(path, "tiny-imagenet-fixed")
+    fixed_root = os.path.join(DEFAULT_DATA_DIR, "tiny-imagenet-fixed")
+
+    os.makedirs(DEFAULT_DATA_DIR, exist_ok=True)
 
     if not os.path.exists(dataset_root):
         raise FileNotFoundError(f"Could not find raw Tiny ImageNet folder at: {dataset_root}")
@@ -99,3 +104,6 @@ def prepare(src_root, dst_root):
                 dst_file = dst_class_dir / img_name
                 if not dst_file.exists():
                     shutil.copy2(src_img, dst_file)
+
+if __name__ == "__main__":
+    setup_download()

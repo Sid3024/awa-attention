@@ -262,7 +262,7 @@ class SwinTransformerBlock(nn.Module):
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, input_resolution=input_resolution, window_size=window_size, g_H=global_num_heads, act_layer=act_layer, drop=drop)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, input_resolution=input_resolution, window_size=to_2tuple(self.window_size), g_H=global_num_heads, act_layer=act_layer, drop=drop)
 
         if self.shift_size > 0:
             # calculate attention mask for SW-MSA
@@ -554,9 +554,16 @@ class SwinTransformer(nn.Module):
         fused_window_process (bool, optional): If True, use one kernel to fused window shift & window partition for acceleration, similar for the reversed part. Default: False
     """
 
+    # def __init__(self, img_size=224, patch_size=4, in_chans=3, num_classes=1000,
+    #              embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24], global_num_heads=[3,6,12,24],
+    #              window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
+    #              drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
+    #              norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
+    #              use_checkpoint=False, fused_window_process=False, **kwargs):
+        
     def __init__(self, img_size=224, patch_size=4, in_chans=3, num_classes=1000,
-                 embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24], global_num_heads=[3,6,12,24],
-                 window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
+                 embed_dim=96, depths=[1,1,1,1], num_heads=[3, 3,6,6], global_num_heads=[3,3,6,6],
+                 window_size=7, mlp_ratio=2., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
                  use_checkpoint=False, fused_window_process=False, **kwargs):

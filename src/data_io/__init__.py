@@ -1,5 +1,5 @@
-from .Download import setup_download
-from .DataLoader import DataConfig, build_loader
+from src.data_io.download import setup_download
+from src.data_io.data_loader import DataConfig, build_loader
 
 
 def get_loaders(batch_size=32, num_workers=0, pin_memory=True):
