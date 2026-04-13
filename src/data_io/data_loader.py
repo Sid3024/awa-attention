@@ -35,7 +35,7 @@ def build_loader(config):
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=config.batch_size,
+        batch_size=config.gpu_batch_size,
         shuffle=True,
         num_workers=config.num_workers,
         pin_memory=config.pin_memory,
@@ -44,7 +44,7 @@ def build_loader(config):
 
     val_loader = DataLoader(
         val_dataset,
-        batch_size=config.batch_size,
+        batch_size=config.gpu_batch_size,
         shuffle=False,
         num_workers=config.num_workers,
         pin_memory=config.pin_memory,
