@@ -11,8 +11,8 @@ my_config = MyConfig()
 @dataclass
 class DataConfig:
     data_path: str = "src/data/tiny-imagenet-fixed"
-    gpu_batch_size: int = 64
-    num_workers: int = 4
+    gpu_batch_size: int = 128
+    num_workers: int = 8
     pin_memory: bool = True
 
 data_config = DataConfig()
@@ -21,11 +21,11 @@ data_config = DataConfig()
 class HyperParamConfig:
     total_batch_size: int = 128
     total_train_steps: int = 80000
-    warmup_fraction: float = 0.1
-    max_fraction: float = 0.8
-    min_lr: float = 1e-3
-    max_lr: float = 1e-4
-    constant_lr: float = 1e-3
+    warmup_fraction: float = 0.05
+    max_fraction: float = 0.9
+    min_lr: float = 1e-4 
+    max_lr: float = 1e-3
+    constant_lr: float = None
     adamw_weight_decay: float = 1e-2
 
 
@@ -36,12 +36,12 @@ class ModelConfig:
     img_size: int = 224
     patch_size: int = 4
     in_chans: int = 3
-    embed_dim: int = 96
-    depths: list = field(default_factory=lambda: [2,2,6,2])
-    num_heads: list = field(default_factory=lambda: [3, 6, 12, 24])
-    global_num_heads: list = field(default_factory=lambda: [3, 6, 12, 24])
+    embed_dim: int = 32
+    depths: list = field(default_factory=lambda: [2,2,2,2])
+    num_heads: list = field(default_factory=lambda: [2, 4, 8, 8])#[3, 6, 12, 24])
+    global_num_heads: list = field(default_factory=lambda: [2, 4, 8, 8])#[3, 6, 12, 24])
     window_size: int = 7
-    mlp_ratio: float = 4.
+    mlp_ratio: float = 2.0
     qkv_bias: bool = True
     qk_scale: float = None
     drop_rate: float = 0.
@@ -60,11 +60,11 @@ class RunConfig():
     iter_id: str = "002"
     MODEL_FILE_PATH: str = None
     LOG_FILE_PATH: str = None
-    model_save_interval: int = int(1e4)
+    model_save_interval: int = 1000
     num_classes: int = 200
-    val_interval: int = 10000
+    val_interval: int = 5000
     model_version: str = "v1"
-    dry_run: bool = False
+    dry_run: bool = False #set to true to not log (for debugging)
     
 
 run_config = RunConfig()
