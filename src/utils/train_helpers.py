@@ -9,7 +9,7 @@ max_lr = hyper_param_config.max_lr
 def get_lr(it):
     if it < warmup_steps:
         return max_lr * (it/warmup_steps)
-    elif it > warmup_steps:
+    elif it > max_steps:
         return min_lr
     else:
         decay_ratio = (it - warmup_steps) / (max_steps - warmup_steps)

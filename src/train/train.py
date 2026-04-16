@@ -94,6 +94,8 @@ def val(model, val_loader, train_step):
     logger.info("Starting validation")
     loss_list = []
     gpu_step = 0
+    correct = 0
+    total = 0
     with torch.no_grad():
         while True:
             try:
@@ -104,11 +106,16 @@ def val(model, val_loader, train_step):
             with torch.autocast(device_type=device, dtype=autocast_dtype):
                 pred_tensor = model(image_tensor)
                 loss = F.cross_entropy(input=pred_tensor, target=label_tensor)
-            logger.info(f"Validation step: {gpu_step} | loss: {loss.item()}")
+            preds = pred_tensor.argmax(dim=1)
+            correct += (preds == label_tensor).sum().item()
+            total += label_tensor.size(0)
+            accuracy = correct / total
+            logger.info(f"Validation step: {gpu_step} | loss: {loss.item()} | accuracy: {accuracy}")
             loss_list.append(loss.item())
             gpu_step += 1
     val_loss = sum(loss_list) / len(loss_list)
-    logger.info(f"Validation Completed. {val_loss=} at {train_step=}")
+    val_accuracy = correct / total
+    logger.info(f"Validation Completed. {val_loss=} and {val_accuracy=} at {train_step=}")
     model.train()
 
 if __name__ == "__main__":
